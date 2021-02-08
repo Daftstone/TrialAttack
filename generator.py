@@ -29,11 +29,11 @@ a = [[1485, 1320, 821, 1562, 1531], [849], [1587], [816],
      [539, 117, 1600, 1326, 208], [436], [825], [558]]
 FLAGS.target_item = a[FLAGS.target_index]
 dataset = Dataset("Data/%s" % FLAGS.dataset, True)
-alluser = dataset.trainMatrix.toarray()
-meanuser=np.round(np.mean(alluser,axis=0) * dataset.max_rate) / dataset.max_rate
+
+# The mode of each item of the three datasets is 0, so simplified here.
 temp = np.zeros((1, dataset.num_items))
-temp[0]=meanuser
 temp[0, FLAGS.target_item] = 1
+
 dataset = utils.estimate_dataset(dataset, temp)
 dataset.origin_num_users += 1
 gan = GAN(dataset, 5, dataset.num_items)
