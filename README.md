@@ -7,7 +7,7 @@ The code was developed on Python 3.6 and tensorflow 1.14.0.
 
 ### run generate_fake.py
 ```
-usage: python main.py [--dataset DATA_NAME] [--gpu GPU_ID]
+usage: python generate_fake.py [--dataset DATA_NAME] [--gpu GPU_ID]
 [--epochs EPOCHS] [--data_size DATA_SIZE] [--target_index TARGET_ITEMS]
 
 optional arguments:
