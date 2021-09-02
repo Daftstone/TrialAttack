@@ -20,7 +20,7 @@ class Dataset(object):
         '''
         Constructor
         '''
-        self.reg_data = FLAGS.reg_data
+        self.reg_data = reg_data
         if (FLAGS.dataset == 'filmtrust'):
             self.max_rate = 8
         else:

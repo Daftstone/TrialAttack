@@ -12,8 +12,10 @@ from greedy_selection import GAN_attack
 flags = tf.flags
 FLAGS = flags.FLAGS
 
+
 def attack(RS, dataset, attack_size, avg_items, target_item):
     return GAN_attack(RS, dataset, attack_size, avg_items, target_item)
+
 
 def sampling(dataset, num_neg, bpr=False):
     tt = dataset.trainMatrix.tocoo()
@@ -97,9 +99,10 @@ def estimate_dataset(dataset, initial_data):
 def cal_neighbor(group, all_user, top_k):
     dis = np.linalg.norm(all_user, axis=1)
     idx = np.argsort(dis)[:top_k]
-    idx=[len(all_user)-1]
-    print("idx",idx)
+    idx = [len(all_user) - 1]
+    print("idx", idx)
     return idx
+
 
 def pert_vector_product(ys, xs1, xs2, v, do_not_sum_up=True):
     # Validate the input
@@ -130,7 +133,7 @@ def pert_vector_product(ys, xs1, xs2, v, do_not_sum_up=True):
     return return_grads
 
 
-def hessian_vector_product(ys, xs, v, do_not_sum_up=True):
+def hessian_vector_product(ys, xs, v, scale=1., do_not_sum_up=True):
     # Validate the input
     length = len(xs)
     if len(v) != length:
@@ -148,12 +151,24 @@ def hessian_vector_product(ys, xs, v, do_not_sum_up=True):
     if do_not_sum_up:
         seperate = []
         for i in range(length):
-            seperate.append(tf.gradients(elemwise_products[i], xs[i])[0])
+            seperate.append(tf.gradients(elemwise_products[i] / scale, xs[i])[0])
         grads_with_none = seperate
     else:
-        grads_with_none = tf.gradients(elemwise_products, xs)
+        grads_with_none = tf.gradients(elemwise_products / scale, xs)
 
     return_grads = [grad_elem if grad_elem is not None \
                         else tf.zeros_like(x) \
                     for x, grad_elem in zip(xs, grads_with_none)]
     return return_grads
+
+
+def convert_slice_to_dense(indexedslice):
+    try:
+        v = np.zeros(indexedslice.dense_shape)
+        value = indexedslice[0]
+        slice = indexedslice.indices
+        for i in range(len(slice)):
+            v[slice[i]] += value[i]
+        return v
+    except:
+        return indexedslice

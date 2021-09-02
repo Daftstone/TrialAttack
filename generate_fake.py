@@ -7,17 +7,14 @@ import utils
 
 flags = tf.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_bool('reg_data', True, 'Regularization for adversarial loss')
 flags.DEFINE_string("dataset", "ml-100k", "Choose a dataset.")
 flags.DEFINE_integer('batch_size', 2048, 'batch_size')
-flags.DEFINE_integer('epochs', 20, 'batch_size')
-flags.DEFINE_list("target_item", [1485], "pass")
-flags.DEFINE_string('gpu', '3', 'Regularization for adversarial loss')
-flags.DEFINE_bool("is_train", False, "pass")
-flags.DEFINE_bool("load_inf", False, "pass")
-flags.DEFINE_float("atk_params", 2000., "pass")
-flags.DEFINE_float("data_size", 1., "pass")
-flags.DEFINE_integer('target_index', 0, 'Embedding size.')
+flags.DEFINE_integer('epochs', 20, 'training epochs')
+flags.DEFINE_list("target_item", [1485], "target items for attacking, the option is invalid")
+flags.DEFINE_string('gpu', '3', 'GPU ID')
+flags.DEFINE_bool("load_inf", False, "load influence from file or calculate online")
+flags.DEFINE_float("data_size", 1., "The data available to the attacker")
+flags.DEFINE_integer('target_index', 0, 'target items for attacking')
 
 os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS.gpu
 

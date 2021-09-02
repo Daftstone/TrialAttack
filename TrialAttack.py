@@ -11,6 +11,7 @@ FLAGS = flags.FLAGS
 sys.path.append("../")
 from k_means import k_means, assign_points
 
+
 class GAN():
     def __init__(self, dataset, c_dims, z_dims):
         self.dataset = dataset
@@ -346,16 +347,16 @@ class GAN():
             print("cur_epochs: ", cur_epochs, count)
             if (count < best):
                 best = count
-                saver_ckpt.save(self.sess,ckpt_save_path)
+                saver_ckpt.save(self.sess, ckpt_save_path)
         saver_ckpt.restore(self.sess, ckpt_save_path)
 
     def train(self):
         assignments, centers = k_means(self.dataset.trainMatrix.toarray(), self.num_cluster)
-        np.save("temp/%s/centers_%d_%f.npy" % (FLAGS.dataset,FLAGS.target_item[0],FLAGS.data_size), centers)
-        np.save("temp/%s/assignments_%d_%f.npy" % (FLAGS.dataset,FLAGS.target_item[0],FLAGS.data_size), assignments)
+        np.save("temp/%s/centers_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size), centers)
+        np.save("temp/%s/assignments_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size), assignments)
         self.assignments = assignments
         centers = np.array(centers)
-        epochs = 1000
+        epochs = 500
         pre_epochs = 300
         if (FLAGS.dataset == 'filmtrust'):
             pre_epochs = 100
@@ -380,7 +381,8 @@ class GAN():
             ii = np.sum(all_user[idx] != 0, axis=1)
             selected_items_num[i, 0] = np.mean(ii) - len(FLAGS.target_item)
             selected_items_num[i, 1] = 0
-        np.save("temp/%s/per_user_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size), selected_items_num)
+        np.save("temp/%s/per_user_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size),
+                selected_items_num)
         self.sample_list(centers.copy())
 
         self.pred_list = []
@@ -414,7 +416,7 @@ class GAN():
             c_idx = np.random.choice(assignments, (D_batch), False)
             for k in range(D_batch):
                 idx[k] = np.random.choice(assign_list[c_idx[k]], 1)[0]
-            z_batch = np.zeros((D_batch,self.num_items))
+            z_batch = np.zeros((D_batch, self.num_items))
             mask = np.zeros((D_batch, self.dataset.num_items))
             for k in range(D_batch):
                 t = int(selected_items_num[c_idx[k], 0])
@@ -445,7 +447,7 @@ class GAN():
             c_idx = np.random.choice(assignments, (G_batch), False)
             for k in range(G_batch):
                 idx[k] = np.random.choice(assign_list[c_idx[k]], 1)[0]
-            z_batch = np.zeros((G_batch,self.num_items))
+            z_batch = np.zeros((G_batch, self.num_items))
             mask = np.zeros((G_batch, self.dataset.num_items))
             for k in range(G_batch):
                 t = int(selected_items_num[c_idx[k], 0])
@@ -490,7 +492,7 @@ class GAN():
                 c_idx = np.random.choice(assignments, (D_batch))
                 for k in range(D_batch):
                     idx[k] = np.random.choice(assign_list[c_idx[k]], 1)[0]
-                z_batch = np.zeros((D_batch,self.num_items))
+                z_batch = np.zeros((D_batch, self.num_items))
                 mask = np.zeros((D_batch, self.dataset.num_items))
                 for k in range(D_batch):
                     t = int(selected_items_num[c_idx[k], 0])
@@ -550,8 +552,8 @@ class GAN():
         v_cur_est = [tf.placeholder(dty, shape=a.get_shape(), name="v_cur_est" + str(i)) for i, a in enumerate(params)]
         Test = [tf.placeholder(dty, shape=a.get_shape(), name="test" + str(i)) for i, a in enumerate(params)]
 
-        hessian_vector_val = utils.hessian_vector_product(self.loss, params, v_cur_est, True)
-        estimation_IHVP = [g + cur_e - HV / scale
+        hessian_vector_val = utils.hessian_vector_product(self.loss, params, v_cur_est, scale, True)
+        estimation_IHVP = [g + cur_e - HV
                            for g, HV, cur_e in zip(Test, hessian_vector_val, v_cur_est)]
 
         rate_mask = self.dataset.trainMatrix.toarray() == 0
@@ -593,7 +595,7 @@ class GAN():
             if j % 500 == 0 and j > 0:
                 cur_norm = np.linalg.norm(cur_estimate[0])
                 if (j % 2500 == 0):
-                    print(cur_norm)
+                    print("Inverse HVP epoch:", j, cur_norm)
                 if (abs(cur_norm - pre_norm) < 0.005):
                     print("stop early!!!")
                     break
@@ -603,7 +605,7 @@ class GAN():
         duration = time.time() - start_time
         print('Inverse HVP by HVPs+Lissa: took %s minute %s sec' % (duration // 60, duration % 60))
 
-        assignments = np.load("temp/%s/assignments_%d_%f.npy" % (FLAGS.dataset,FLAGS.target_item[0],FLAGS.data_size))
+        assignments = np.load("temp/%s/assignments_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size))
         select_list = []
         sidx = utils.cal_neighbor(all_user, all_user, self.count)
         for i in range(np.max(assignments) + 1):
@@ -625,16 +627,17 @@ class GAN():
                                  self.ratings_holder: cur_user[:, None],
                                  self.rate_mask: (cur_user != 0)[None, :]}
                     train_grad_loss_val = self.sess.run(train_grad, feed_dict=feed_dict)
-                    train_grad_loss_val = [np.reshape(v, [-1]) for v in train_grad_loss_val]
+                    train_grad_loss_val = [np.reshape(utils.convert_slice_to_dense(v), [-1]) for v in train_grad_loss_val]
                     val_lissa = -np.dot(np.concatenate(inverse_hvp), np.concatenate(train_grad_loss_val))
                     feed2 = {place: cur for place, cur in zip(v_cur_est, inverse_hvp1)}
                     pert_vector_val = utils.pert_vector_product(per_loss, params, self.ratings_holder,
-                                                                          v_cur_est, True)
+                                                                v_cur_est, True)
                     val_lissa1 = self.sess.run(pert_vector_val, feed_dict={**feed_dict, **feed2})
                     temp_dict[i] = [val_lissa, val_lissa1]
                     self.pred_list.append([val_lissa, val_lissa1, cur_user])
                 cur_list.append([val_lissa, np.concatenate(val_lissa1), cur_user])
             self.save_list.append(cur_list)
+
 
     # Generate influence training data
     def prepare_influence_data(self, assignments, per_user):
@@ -705,7 +708,7 @@ class GAN():
         per_user = np.load("temp/%s/per_user_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size))
 
         idx = np.random.choice(np.arange(self.dataset.num_users), (generator_num))
-        np.save("temp/%s/assignments_poison_%d_%f.npy" % (FLAGS.dataset,FLAGS.target_item[0],FLAGS.data_size), idx)
+        np.save("temp/%s/assignments_poison_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size), idx)
         idx = np.load("temp/%s/assignments_poison_%d_%f.npy" % (FLAGS.dataset, FLAGS.target_item[0], FLAGS.data_size))
         print(idx.shape)
         c_idx = self.assignments[idx]
